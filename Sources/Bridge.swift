@@ -33,6 +33,8 @@ final class Bridge: NSObject, WKScriptMessageHandler {
         // LLM on-device (Apple Intelligence). Resolve string ou null se indisponível.
         aiSummarize: (text) => call("aiSummarize", { text: text }),
         aiPrompt: (prompt) => call("aiPrompt", { prompt: prompt }),
+        // OCR on-device (Vision) — texto de imagem ou PDF escaneado
+        ocr: (dataUrl) => call("ocr", { dataUrl: dataUrl }),
         _resolve: (id, value) => { const p = pending[id]; if (p) { p.resolve(value); delete pending[id]; } },
         _reject: (id, err) => { const p = pending[id]; if (p) { p.reject(new Error(err)); delete pending[id]; } }
       };
@@ -107,6 +109,13 @@ final class Bridge: NSObject, WKScriptMessageHandler {
             Task { [weak self] in
                 let result = await OnDeviceAI.run(prompt)
                 await MainActor.run { self?.resolve(id, jsValue: self?.jsString(result) ?? "null") }
+            }
+
+        case "ocr":
+            let dataUrl = payload["dataUrl"] as? String ?? ""
+            Task.detached { [weak self] in
+                let text = OCR.recognize(dataURL: dataUrl)
+                await MainActor.run { self?.resolve(id, jsValue: self?.jsString(text) ?? "null") }
             }
 
         default:
