@@ -26,6 +26,10 @@ final class Bridge: NSObject, WKScriptMessageHandler {
         keychainSet: (key, value) => call("keychainSet", { key: key, value: value }),
         keychainGet: (key) => call("keychainGet", { key: key }),
         keychainDelete: (key) => call("keychainDelete", { key: key }),
+        // Notificações nativas + badge no Dock
+        notify: (title, body) => call("notify", { title: title, body: body }),
+        setBadge: (count) => call("setBadge", { count: count }),
+        requestNotificationPermission: () => call("requestNotificationPermission", {}),
         _resolve: (id, value) => { const p = pending[id]; if (p) { p.resolve(value); delete pending[id]; } },
         _reject: (id, err) => { const p = pending[id]; if (p) { p.reject(new Error(err)); delete pending[id]; } }
       };
@@ -70,6 +74,23 @@ final class Bridge: NSObject, WKScriptMessageHandler {
             let key = payload["key"] as? String ?? ""
             Keychain.delete(key)
             resolve(id, jsValue: "true")
+
+        case "notify":
+            NativeNotifications.show(
+                title: payload["title"] as? String ?? "MyBoard",
+                body: payload["body"] as? String ?? ""
+            )
+            resolve(id, jsValue: "true")
+
+        case "setBadge":
+            let count = (payload["count"] as? NSNumber)?.intValue ?? 0
+            NativeNotifications.setBadge(count)
+            resolve(id, jsValue: "true")
+
+        case "requestNotificationPermission":
+            NativeNotifications.requestPermission { [weak self] granted in
+                self?.resolve(id, jsValue: granted ? "true" : "false")
+            }
 
         default:
             reject(id, error: "Ação desconhecida: \(action)")
