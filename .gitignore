@@ -1,0 +1,14 @@
+# Projeto gerado pelo XcodeGen (recrie com `xcodegen generate`)
+*.xcodeproj/
+
+# Xcode / build
+DerivedData/
+build/
+.DS_Store
+*.xcuserstate
+xcuserdata/
+
+# Distribuição
+*.dmg
+*.zip
+export/
