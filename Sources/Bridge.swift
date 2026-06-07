@@ -30,6 +30,9 @@ final class Bridge: NSObject, WKScriptMessageHandler {
         notify: (title, body) => call("notify", { title: title, body: body }),
         setBadge: (count) => call("setBadge", { count: count }),
         requestNotificationPermission: () => call("requestNotificationPermission", {}),
+        // LLM on-device (Apple Intelligence). Resolve string ou null se indisponível.
+        aiSummarize: (text) => call("aiSummarize", { text: text }),
+        aiPrompt: (prompt) => call("aiPrompt", { prompt: prompt }),
         _resolve: (id, value) => { const p = pending[id]; if (p) { p.resolve(value); delete pending[id]; } },
         _reject: (id, err) => { const p = pending[id]; if (p) { p.reject(new Error(err)); delete pending[id]; } }
       };
@@ -90,6 +93,20 @@ final class Bridge: NSObject, WKScriptMessageHandler {
         case "requestNotificationPermission":
             NativeNotifications.requestPermission { [weak self] granted in
                 self?.resolve(id, jsValue: granted ? "true" : "false")
+            }
+
+        case "aiSummarize":
+            let text = payload["text"] as? String ?? ""
+            Task { [weak self] in
+                let result = await OnDeviceAI.summarize(text)
+                await MainActor.run { self?.resolve(id, jsValue: self?.jsString(result) ?? "null") }
+            }
+
+        case "aiPrompt":
+            let prompt = payload["prompt"] as? String ?? ""
+            Task { [weak self] in
+                let result = await OnDeviceAI.run(prompt)
+                await MainActor.run { self?.resolve(id, jsValue: self?.jsString(result) ?? "null") }
             }
 
         default:

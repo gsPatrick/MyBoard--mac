@@ -9,4 +9,7 @@ enum Config {
     #else
     static let appURL = "https://myboard.codebypatrick.dev/dashboard"
     #endif
+
+    // Base da API (usada por App Intents/Siri nativos).
+    static let apiBase = "https://geral-myboard--api.r954jc.easypanel.host/api"
 }
