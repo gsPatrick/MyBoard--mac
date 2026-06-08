@@ -35,6 +35,9 @@ final class Bridge: NSObject, WKScriptMessageHandler {
         aiPrompt: (prompt) => call("aiPrompt", { prompt: prompt }),
         // OCR on-device (Vision) — texto de imagem ou PDF escaneado
         ocr: (dataUrl) => call("ocr", { dataUrl: dataUrl }),
+        // Abrir o app ao iniciar o sistema (login items)
+        getLaunchAtLogin: () => call("getLaunchAtLogin", {}),
+        setLaunchAtLogin: (enabled) => call("setLaunchAtLogin", { enabled: enabled }),
         _resolve: (id, value) => { const p = pending[id]; if (p) { p.resolve(value); delete pending[id]; } },
         _reject: (id, err) => { const p = pending[id]; if (p) { p.reject(new Error(err)); delete pending[id]; } }
       };
@@ -117,6 +120,14 @@ final class Bridge: NSObject, WKScriptMessageHandler {
                 let text = OCR.recognize(dataURL: dataUrl)
                 await MainActor.run { self?.resolve(id, jsValue: self?.jsString(text) ?? "null") }
             }
+
+        case "getLaunchAtLogin":
+            resolve(id, jsValue: LaunchAtLogin.isEnabled() ? "true" : "false")
+
+        case "setLaunchAtLogin":
+            let enabled = (payload["enabled"] as? NSNumber)?.boolValue ?? (payload["enabled"] as? Bool ?? false)
+            let ok = LaunchAtLogin.set(enabled)
+            resolve(id, jsValue: ok ? "true" : "false")
 
         default:
             reject(id, error: "Ação desconhecida: \(action)")
